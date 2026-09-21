@@ -1,24 +1,41 @@
-using System;
-using System.Windows.Forms;
 using AdministradorProcesos.Services;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.Windows.Forms;
+using AdministradorProcesos.Models;
 
 namespace AdministradorProcesos
 {
     public partial class Form1 : Form
     {
         private readonly ProcessService _processService;
+        private readonly ProcessOperationsService _processOperationsService;
+
+        // Boris: Servicio de métricas y datos para los gráficos de CPU
         private readonly MetricsService _metricsService;
         private float _cpuUsageActual = 0;
         private List<float> _cpuHistory = new List<float>();
 
+        //Boris color d la barra de RAM
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
         public Form1()
         {
             InitializeComponent();
+
             _processService = new ProcessService();
-            _metricsService = new MetricsService();
+            _processOperationsService = new ProcessOperationsService(); //ServicioAgregado
+            _metricsService = new MetricsService();                     // [Boris]
+
+            //Agregado Detectar clic derecho en una fila
+            dgvProcesos.CellMouseDown += dgvProcesos_CellMouseDown;
+
+            // [Astrid] AGREGADO: aplica el estilo visual y deja el botón Pausar/Reanudar
+            // en su estado inicial. El método está en Form1.Interfaz.cs.
+            InicializarInterfaz();
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -26,37 +43,21 @@ namespace AdministradorProcesos
             CargarProcesos();
         }
 
+
+        //En este si modifiqué lo de boris para que se pudiera ejecutar lo mio
+        // [Astrid] MODIFICADO: guarda la lista completa y delega en AplicarFiltro()
+        // (Form1.Interfaz.cs), que respeta el texto de la barra de búsqueda aunque el
+        // Timer refresque los datos cada 3 segundos.
+
+        //Explicación: Lo de boris guardaba la selección por número de fila y reasignaba el DataSource.
+        //El AplicarFiltro(), guarda el filtro y no se pierde 
         private void CargarProcesos()
         {
-            // Guardar la fila seleccionada y la posición del scroll
-            int indexFilaSeleccionada = -1;
-            if (dgvProcesos.CurrentRow != null)
-            {
-                indexFilaSeleccionada = dgvProcesos.CurrentRow.Index;
-            }
+            // Obtener la nueva lista de procesos y guardarla completa (sin filtrar)
+            _listaCompleta = _processService.GetActiveProcesses();
 
-            int primerIndiceVisible = dgvProcesos.FirstDisplayedScrollingRowIndex;
-
-            // Obtener la nueva lista de procesos
-            var listaProcesos = _processService.GetActiveProcesses();
-
-            //Refrescar los datos
-            dgvProcesos.DataSource = null;
-            dgvProcesos.DataSource = listaProcesos;
-
-            // Restaura Posicion
-            if (primerIndiceVisible >= 0 && primerIndiceVisible < dgvProcesos.RowCount)
-            {
-                dgvProcesos.FirstDisplayedScrollingRowIndex = primerIndiceVisible;
-            }
-
-            // Restaurar la fila seleccionada
-            if (indexFilaSeleccionada >= 0 && indexFilaSeleccionada < dgvProcesos.RowCount)
-            {
-                dgvProcesos.Rows[indexFilaSeleccionada].Selected = true;
-                // no null
-                dgvProcesos.CurrentCell = dgvProcesos.Rows[indexFilaSeleccionada].Cells[0];
-            }
+            // Mostrar en la tabla solo lo que coincide con la búsqueda actual
+            AplicarFiltro();
         }
 
         private void btnActualizar_Click(object sender, EventArgs e)
@@ -64,10 +65,25 @@ namespace AdministradorProcesos
             CargarProcesos();
         }
 
+        // Timer de la TABLA: es el que controla el botón Pausar/Reanudar (Form1.Interfaz.cs)
         private void timer1_Tick(object sender, EventArgs e)
         {
             // Refresco automático de la tabla
             CargarProcesos();
+        }
+
+        //Este lo agregué para que no se detuvieran las gráficar d boris, llama a ActualizarMetricas
+        // [Boris] Timer de las MÉTRICAS: independiente, así al pausar la tabla
+        // el reloj de CPU, la gráfica y la barra de RAM siguen en vivo.
+        private void timerMetricas_Tick(object sender, EventArgs e)
+        {
+            ActualizarMetricas();
+        }
+
+        //Este lo reemplacé por el timer1_tick de antes, todo el código d boris sigue igual solo que ahora solo llama a CargarProcesos()
+        // [Boris] Obtiene las métricas y actualiza barra de RAM, reloj y gráfica de CPU
+        private void ActualizarMetricas()
+        {
             // 1. Obtener métricas
             float cpuUsage = _metricsService.GetCpuUsage();
             float availableRam = _metricsService.GetAvailableRam();
@@ -77,16 +93,17 @@ namespace AdministradorProcesos
             double usedRamGB = (totalRam - availableRam) / 1024.0;
             double totalRamGB = totalRam / 1024.0;
 
-            // 2. RAM Visual
+            // 2. RAM visual (Math.Clamp evita que la barra lance excepción fuera de 0-100)
             lblRam.Text = $"{usedRamGB:F1} GB / {totalRamGB:F0} GB";
-            pbRam.Value = (int)Math.Round(ramPercentage);
+            pbRam.Value = Math.Clamp((int)Math.Round(ramPercentage), 0, 100);
 
+            // Color de la barra: 1 = verde, 3 = amarillo, 2 = rojo
             int estadoRam = 1;
             if (ramPercentage > 85) estadoRam = 2;
             else if (ramPercentage > 60) estadoRam = 3;
             SendMessage(pbRam.Handle, 1040, (IntPtr)estadoRam, IntPtr.Zero);
 
-            // 3. CPU Visual (Reloj y Gráfica)
+            // 3. CPU visual (reloj y gráfica)
             _cpuUsageActual = cpuUsage;
             picCpu.Invalidate();
 
@@ -99,6 +116,7 @@ namespace AdministradorProcesos
         {
             if (dgvProcesos.CurrentRow != null)
             {
+                // !!!! la columna del PID sigue llamándose "Id" (ver Designer)
                 int processId = Convert.ToInt32(dgvProcesos.CurrentRow.Cells["Id"].Value);
 
                 if (_processService.KillProcess(processId))
@@ -113,16 +131,9 @@ namespace AdministradorProcesos
             }
         }
 
-        private void label1_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label2_Click(object sender, EventArgs e)
-        {
-
-        }
-
+        // ------------------------------------------------------------------
+        // Boris: Dibujo del reloj circular de CPU
+        // ------------------------------------------------------------------
         private void picCpu_Paint(object sender, PaintEventArgs e)
         {
             // Mejorar la calidad del dibujo para que no se vea pixelado
@@ -171,6 +182,9 @@ namespace AdministradorProcesos
             }
         }
 
+        // ------------------------------------------------------------------
+        // Boris: Dibujo de la gráfica de historial de CPU
+        // ------------------------------------------------------------------
         private void picChartCpu_Paint(object sender, PaintEventArgs e)
         {
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
@@ -210,11 +224,6 @@ namespace AdministradorProcesos
                     e.Graphics.DrawLine(penLinea, x1, y1, x2, y2);
                 }
             }
-        }
-
-        private void label2_Click_1(object sender, EventArgs e)
-        {
-
         }
     }
 }
