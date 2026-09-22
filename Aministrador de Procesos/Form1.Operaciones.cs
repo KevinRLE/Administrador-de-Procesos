@@ -1,4 +1,6 @@
-﻿using System;
+﻿//Creado por Britany Mishel Hernandez Davila 9959-24-4178
+//ClaseParcial del form1 para el funcionamiento del contextMenuProcesos en la tabla de procesos
+using System;
 using System.Diagnostics;
 using System.Windows.Forms;
 
@@ -7,13 +9,14 @@ namespace AdministradorProcesos
     public partial class Form1
     {
         //--MENU de prioridades
+        //Metodo para seleccionar la fila al hacer click derecho
         private void dgvProcesos_CellMouseDown(object sender, DataGridViewCellMouseEventArgs e)
         {
             //Comprobar que sea clic derecho sobre una fila valida
             if (e.Button == MouseButtons.Right && e.RowIndex >= 0 && e.ColumnIndex >= 0)
             {
                 //Seleccion de la fila en la que se dio el click
-                dgvProcesos.ClearSelection();
+                dgvProcesos.ClearSelection(); //Limpia la seccion anterior
                 dgvProcesos.Rows[e.RowIndex].Selected = true;
 
                 //Restablecer la fila como actual
@@ -25,11 +28,14 @@ namespace AdministradorProcesos
         //Obtencion del proceso seleccionado
         private int ObtenerProcessIDSeleccionado()
         {
+            //Verificacion de fila seleccionada
             if (dgvProcesos.CurrentRow == null) return -1;
 
             // Buscar por índice (la columna ID es la primera, índice 0)
+            //Verificacion del valor de la celda
             if (dgvProcesos.CurrentRow.Cells[0].Value == null) return -1;
 
+            //Conversion del valor de la celda a entero
             if (int.TryParse(dgvProcesos.CurrentRow.Cells[0].Value.ToString(), out int processId))
             {
                 return processId;
@@ -41,8 +47,10 @@ namespace AdministradorProcesos
         //Cambiar la prioridad
         private void CambiarPrioridad(ProcessPriorityClass prioridad)
         {
+            //Obtencion de la ID del proceso 
             int processId = ObtenerProcessIDSeleccionado();
 
+            //Verificacion de proceso seleccionado
             if (processId == -1)
             {
                 MessageBox.Show("Selecciona un proceso primero.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -63,6 +71,7 @@ namespace AdministradorProcesos
             }
         }
 
+        //Metodos submenu de prioridades
         //Prioridad en tiempo real 
         private void menuTiempoReal_Click(object sender, EventArgs e)
         {

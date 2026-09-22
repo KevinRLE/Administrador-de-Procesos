@@ -1,3 +1,5 @@
+//Creado por Astrid Fernanda Ruíz López - 9959 24 2976
+//ClaseParcial del form1 para el funcionamiento del filtrado de tabla, botón reanudar/pausar y 
 using AdministradorProcesos.Models;
 using System;
 using System.Collections.Generic;
@@ -8,10 +10,9 @@ using System.Windows.Forms;
 
 namespace AdministradorProcesos
 {
-    // =====================================================================================
-    //  Astrid - Interfaz de Usuario & Filtros
+    //Interfaz de Usuario & Filtros
 
-    //  Se implementó:
+    //  Trabajo asignado d #2:
     //    1) Barra d búsqueda en tiempo real  -> txtBuscar_TextChanged / AplicarFiltro / FiltrarProcesos
     //    2) Botón btnPausar que detiene o reanuda el Timer   -> btnPausar_Click / ActualizarEstadoPausa
     //    3) Estilo visual y alertas  -> AplicarEstilo / dgvProcesos_CellFormatting / ActualizarContadores
@@ -19,13 +20,15 @@ namespace AdministradorProcesos
     public partial class Form1
     {
 
+        //variables
+
         /// Texto exacto que ProcessService.GetActiveProcesses() pone en la propiedad Status
         /// cuando un proceso está congelado (p.Responding == false). Se usa como constante
-        /// para no repetir el "string" en varios lados y evitar errores de dedo.
+        /// para no repetir el string para no repetirlo en el codigo
         private const string EstadoNoResponde = "No responde";
 
- 
-        /// Lista COMPLETA de procesos tal como la devolvió el servicio en el último refresco.
+
+        /// Lista COMPLETA de procesos  tal como llegaron del sistema, sin filtrar.
         /// El filtro siempre parte de esta lista, así, al borrar
         /// texto de la búsqueda, los procesos vuelven a aparecer sin volver a consultar al sistema.
         private List<ProcessModel> _listaCompleta = new List<ProcessModel>();
@@ -37,7 +40,7 @@ namespace AdministradorProcesos
         /// proceso de una fila con _listaMostrada[indice] sin tocar el grid (más rápido).
         private List<ProcessModel> _listaMostrada = new List<ProcessModel>();
 
-        //Paleta de colores (definida en un solo en )
+        //Paleta de colores 
         private static readonly Color ColorFondoForm = Color.FromArgb(241, 245, 249); // gris muy claro
         private static readonly Color ColorEncabezado = Color.FromArgb(30, 41, 59);   // azul oscuro
         private static readonly Color ColorPrimario = Color.FromArgb(37, 99, 235);    // azul (selección/botón)
@@ -75,7 +78,7 @@ namespace AdministradorProcesos
             };
         }
 
-        // ---------------------------------------------------------------------------------
+        
         //  1) BÚSQUEDA EN TIEMPO REAL
         // ---------------------------------------------------------------------------------
 
@@ -163,7 +166,7 @@ namespace AdministradorProcesos
             dgvProcesos.CurrentCell = dgvProcesos.Rows[indice].Cells[0];
         }
 
-        // ---------------------------------------------------------------------------------
+        
         //  2) CONTROL  (PAUSAR / REANUDAR)
         ///  - Si el Timer estaba activo lo detiene  -> la tabla deja de actualizarse sola.
         ///  - Si estaba detenido lo activa          -> vuelve el refresco automático.
@@ -202,8 +205,7 @@ namespace AdministradorProcesos
 
         // ---------------------------------------------------------------------------------
         //  3) ESTILO VISUAL Y ESTADOS DE ALERTA
-        
-        /// Personalicé el aspecto del form 
+       
         /// Las posiciones y tamaños de los controles están en el Designer;
         /// aquí solo va la parte "estética", para que sea fácil de cambiar en un solo sitio.
         private void AplicarEstilo()

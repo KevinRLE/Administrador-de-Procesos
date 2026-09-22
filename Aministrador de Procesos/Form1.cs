@@ -11,6 +11,8 @@ namespace AdministradorProcesos
     public partial class Form1 : Form
     {
         private readonly ProcessService _processService;
+
+        //Mishel Servicio para el cambio de prioridad y ubicacion del proceso
         private readonly ProcessOperationsService _processOperationsService;
 
         // Boris: Servicio de métricas y datos para los gráficos de CPU
