@@ -1,5 +1,5 @@
 //Creado por Astrid Fernanda Ruíz López - 9959 24 2976
-//ClaseParcial del form1 para el funcionamiento del filtrado de tabla, botón reanudar/pausar y 
+//ClaseParcial del form1 para el funcionamiento del filtrado de tabla, botón reanudar/pausar y alerta procesos q no funcionan
 using AdministradorProcesos.Models;
 using System;
 using System.Collections.Generic;
@@ -10,34 +10,28 @@ using System.Windows.Forms;
 
 namespace AdministradorProcesos
 {
-    //Interfaz de Usuario & Filtros
 
-    //  Trabajo asignado d #2:
+    //  Trabajo asignado N#2:
     //    1) Barra d búsqueda en tiempo real  -> txtBuscar_TextChanged / AplicarFiltro / FiltrarProcesos
     //    2) Botón btnPausar que detiene o reanuda el Timer   -> btnPausar_Click / ActualizarEstadoPausa
     //    3) Estilo visual y alertas  -> AplicarEstilo / dgvProcesos_CellFormatting / ActualizarContadores
-    // =====================================================================================
+
     public partial class Form1
     {
 
         //variables
 
-        /// Texto exacto que ProcessService.GetActiveProcesses() pone en la propiedad Status
-        /// cuando un proceso está congelado (p.Responding == false). Se usa como constante
-        /// para no repetir el string para no repetirlo en el codigo
+        /// Texto exacto que ProcessService.GetActiveProcesses() pone en la propiedad Status cuando un proceso está congelado (p.Responding == false). 
         private const string EstadoNoResponde = "No responde";
 
 
         /// Lista COMPLETA de procesos  tal como llegaron del sistema, sin filtrar.
-        /// El filtro siempre parte de esta lista, así, al borrar
-        /// texto de la búsqueda, los procesos vuelven a aparecer sin volver a consultar al sistema.
+   
         private List<ProcessModel> _listaCompleta = new List<ProcessModel>();
 
   
         /// Lista que se está MOSTRANDO actualmente en el DataGridView (resultado del filtro).
-        /// Como las columnas no se pueden ordenar (SortMode = NotSortable), el índice de fila
-        /// del grid coincide siempre con el índice de esta lista. Eso permite consultar el
-        /// proceso de una fila con _listaMostrada[indice] sin tocar el grid (más rápido).
+        /// Como las columnas no se pueden ordenar (SortMode = NotSortable), el índice de fila del grid coincide siempre con el índice de esta lista. 
         private List<ProcessModel> _listaMostrada = new List<ProcessModel>();
 
         //Paleta de colores 
@@ -50,21 +44,19 @@ namespace AdministradorProcesos
         private static readonly Color ColorTextoPrincipal = Color.FromArgb(15, 23, 42);
         private static readonly Color ColorTextoSecundario = Color.FromArgb(100, 116, 139);
 
-        // ---- Colores de ALERTA para procesos que "No responden" ----
+        //  Colores de ALERTA para procesos que "No responden" 
         private static readonly Color ColorAlertaFondo = Color.FromArgb(254, 226, 226);    // rojo muy claro
         private static readonly Color ColorAlertaTexto = Color.FromArgb(153, 27, 27);      // rojo oscuro
         private static readonly Color ColorAlertaSeleccion = Color.FromArgb(185, 28, 28);  // rojo fuerte
 
-        // ---- Fuentes 
+        // Fuentes 
         private readonly Font _fuenteNormal = new Font("Segoe UI", 10F);
         private readonly Font _fuenteNegrita = new Font("Segoe UI", 10F, FontStyle.Bold);
         private readonly Font _fuenteTitulo = new Font("Segoe UI Semibold", 16F);
 
-        // ---------------------------------------------------------------------------------
         //  INICIALIZACIÓN
         /// Se llama UNA vez desde el constructor de Form1 (después de InitializeComponent).
-        /// Aplica el estilo visual, deja el botón de pausa en su estado inicial y
-        /// se encarga de liberar las fuentes cuando el formulario se cierra.
+        /// Aplica el estilo visual, deja el botón de pausa en su estado inicial y se encarga de liberar las fuentes cuando el formulario se cierra.
         private void InicializarInterfaz()
         {
             AplicarEstilo();
@@ -79,8 +71,7 @@ namespace AdministradorProcesos
         }
 
         
-        //  1) BÚSQUEDA EN TIEMPO REAL
-        // ---------------------------------------------------------------------------------
+        //  1) BÚSQUEDA EN TIEMPO REA
 
         /// Evento TextChanged del TextBox de búsqueda. Windows Forms lo dispara CADA VEZ que
         /// el texto cambia (al escribir, borrar o pegar), por eso el filtrado es "en tiempo real":
@@ -112,8 +103,7 @@ namespace AdministradorProcesos
         }
 
       
-        /// Método q:toma _listaCompleta, le aplica el filtro actual y
-        /// muestra el resultado en el DataGridView. Se ejecuta en dos situaciones:
+        /// Método q:toma _listaCompleta, le aplica el filtro actual y muestra el resultado en el DataGridView. Se ejecuta en dos situaciones:
         ///   a) cuando el usuario escribe en la búsqueda (txtBuscar_TextChanged), y
         ///   b) cada vez que se refresca la lista de procesos (CargarProcesos en Form1.cs).
         /// Por eso el filtro NO se pierde cuando el Timer actualiza los datos cada 3 segundos.
@@ -151,8 +141,7 @@ namespace AdministradorProcesos
 
      
         /// Busca en la lista mostrada el proceso con el PID indicado y selecciona su fila.
-        /// Si ese proceso ya no existe (terminó) o quedó fuera del filtro, no hace nada
-        /// y el DataGridView deja seleccionada la primera fila por defecto.
+        /// Si ese proceso ya no existe (terminó) o quedó fuera del filtro, no hace nada y el DataGridView deja seleccionada la primera fila por defecto.
         private void SeleccionarFilaPorPid(int pid)
         {
             int indice = _listaMostrada.FindIndex(p => p.Id == pid);
@@ -170,15 +159,14 @@ namespace AdministradorProcesos
         //  2) CONTROL  (PAUSAR / REANUDAR)
         ///  - Si el Timer estaba activo lo detiene  -> la tabla deja de actualizarse sola.
         ///  - Si estaba detenido lo activa          -> vuelve el refresco automático.
-        /// La propiedad Timer.Enabled equivale a Start()/Stop().
-        /// Pausar es útil para "congelar" la tabla y revisar un proceso con calma.
-        /// El botón "Actualizar" (manual) sigue funcionando aunque esté en pausa.
+        /// La propiedad Timer.Enabled equivale a Inicia/Stop(parar)
+        /// Pausar es útil para congelar la tabla y revisar un proceso con calma.
         private void btnPausar_Click(object sender, EventArgs e)
         {
             timer1.Enabled = !timer1.Enabled;
             ActualizarEstadoPausa();
 
-            // Al reanudar se refresca de inmediato, sin esperar los 3 segundos del siguiente Tick.
+            // Al reanudar se refresca de inmediato, sin esperar los 3 segundos del siguiente 
             if (timer1.Enabled)
             {
                 CargarProcesos();
@@ -186,9 +174,7 @@ namespace AdministradorProcesos
         }
 
   
-        /// Sincroniza la interfaz con el estado actual del Timer: cambia el texto y el color
-        /// del botón (ámbar "Pausar" / verde "Reanudar") y el mensaje de la barra de estado,
-        /// que se pone en rojo cuando la actualización está pausada para que sea evidente.
+        /// No cambia nada del actualizar estado, solo actualiza el color :)
         private void ActualizarEstadoPausa()
         {
             bool activo = timer1.Enabled;
@@ -203,11 +189,9 @@ namespace AdministradorProcesos
             lblActualizacion.Font = activo ? _fuenteNormal : _fuenteNegrita;
         }
 
-        // ---------------------------------------------------------------------------------
         //  3) ESTILO VISUAL Y ESTADOS DE ALERTA
        
-        /// Las posiciones y tamaños de los controles están en el Designer;
-        /// aquí solo va la parte "estética", para que sea fácil de cambiar en un solo sitio.
+        /// Las posiciones y tamaños de los controles están en el Designer aquí solo va la parte estetica, para que sea fácil de cambiar aquí
         private void AplicarEstilo()
         {
             // ----- Formulario -----
@@ -332,9 +316,7 @@ namespace AdministradorProcesos
             }
         }
 
-        /// Actualiza la barra de estado inferior con:
-        ///  - Cuántos procesos hay (o "Mostrando X de Y" si hay un filtro activo).
-        ///  - Cuántos procesos NO RESPONDEN: en rojo y negrita si hay alguno, en verde si no hay.
+        /// Actualiza la barra de estado inferior con: Cuántos procesos hay y Cuántos procesos NO RESPONDEN: en rojo y negrita si hay alguno, en verde si no hay.
 
         private void ActualizarContadores()
         {
